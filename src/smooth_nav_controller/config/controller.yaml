@@ -1,0 +1,18 @@
+# smooth_nav_controller default parameters
+trajectory_tracker_node:
+  ros__parameters:
+    # Pure Pursuit
+    look_ahead_distance: 0.3      # meters
+    max_linear_velocity: 0.18     # TurtleBot3 Burger max: 0.22 m/s
+    max_angular_velocity: 2.0     # rad/s
+
+    # Goal tolerance
+    goal_tolerance: 0.08          # meters — distance to goal to consider "arrived"
+
+    # PID gains for cross-track error correction
+    pid_kp: 1.0
+    pid_ki: 0.0
+    pid_kd: 0.1
+
+    # Control loop rate (Hz)
+    control_rate: 20.0

@@ -1,0 +1,45 @@
+name: CI — Build & Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+    container:
+      image: osrf/ros:humble-ros-base
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3-colcon-common-extensions \
+            build-essential cmake \
+            ros-humble-nav-msgs \
+            ros-humble-tf2-ros \
+            ros-humble-tf2-geometry-msgs \
+            ros-humble-launch-testing \
+            ros-humble-launch-testing-ament-cmake \
+            ros-humble-launch-testing-ros
+        shell: bash
+
+      - name: Build
+        run: |
+          source /opt/ros/humble/setup.bash
+          cd $GITHUB_WORKSPACE
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      - name: Run unit tests
+        run: |
+          source /opt/ros/humble/setup.bash
+          source $GITHUB_WORKSPACE/install/setup.bash
+          colcon test --packages-select smooth_nav_core --return-code-on-test-failure
+          colcon test-result --verbose
+        shell: bash

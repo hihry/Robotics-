@@ -1,0 +1,59 @@
+# docker-compose.yml — Services for smooth_nav development
+version: "3.8"
+
+services:
+  # ── Development shell ───────────────────────────────────────
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: smooth_nav_dev
+    environment:
+      - DISPLAY=${DISPLAY:-host.docker.internal:0}
+      - TURTLEBOT3_MODEL=burger
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - GAZEBO_MODEL_PATH=/opt/ros/humble/share/turtlebot3_gazebo/models
+    volumes:
+      - ../src:/ros2_ws/src          # live source mount for development
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    network_mode: host
+    stdin_open: true
+    tty: true
+    command: bash
+
+  # ── Run unit tests only ─────────────────────────────────────
+  test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: smooth_nav_test
+    environment:
+      - TURTLEBOT3_MODEL=burger
+    command: >
+      bash -c "
+        source /opt/ros/humble/setup.bash &&
+        source /ros2_ws/install/setup.bash &&
+        colcon test --packages-select smooth_nav_core smooth_nav_tests --return-code-on-test-failure &&
+        colcon test-result --verbose
+      "
+
+  # ── Full simulation demo ────────────────────────────────────
+  sim:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: smooth_nav_sim
+    environment:
+      - DISPLAY=${DISPLAY:-host.docker.internal:0}
+      - TURTLEBOT3_MODEL=burger
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - GAZEBO_MODEL_PATH=/opt/ros/humble/share/turtlebot3_gazebo/models
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    network_mode: host
+    command: >
+      bash -c "
+        source /opt/ros/humble/setup.bash &&
+        source /ros2_ws/install/setup.bash &&
+        ros2 launch smooth_nav_bringup smooth_nav.launch.py
+      "

@@ -1,0 +1,18 @@
+# smooth_nav_ros default parameters
+path_smoother_node:
+  ros__parameters:
+    smoother_type: "cubic_spline"   # "cubic_spline" | "bspline"
+    num_smooth_points: 200
+
+    # BSpline / Gradient Descent parameters (only used when smoother_type == "bspline")
+    bspline_weight_data: 0.1
+    bspline_weight_smooth: 0.3
+    bspline_tolerance: 1.0e-6
+    bspline_max_iterations: 10000
+
+trajectory_generator_node:
+  ros__parameters:
+    generator_type: "trapezoidal"   # "trapezoidal" | "constant"
+    max_velocity: 0.18              # TurtleBot3 Burger max: 0.22 m/s
+    max_acceleration: 0.5           # m/s²
+    time_step: 0.05                 # 20 Hz trajectory sampling

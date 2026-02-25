@@ -1,0 +1,9 @@
+# Request: smoothed path + desired speed
+smooth_nav_msgs/SmoothedPath smoothed_path
+float64 max_velocity
+float64 max_acceleration
+---
+# Response: time-parameterized trajectory
+smooth_nav_msgs/Trajectory trajectory
+bool success
+string message

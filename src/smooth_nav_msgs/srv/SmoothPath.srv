@@ -1,0 +1,7 @@
+# Request: array of waypoints to smooth
+smooth_nav_msgs/WaypointArray waypoints
+---
+# Response: smoothed path
+smooth_nav_msgs/SmoothedPath smoothed_path
+bool success
+string message

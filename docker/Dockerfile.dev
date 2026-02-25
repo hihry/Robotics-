@@ -1,0 +1,52 @@
+# ──────────────────────────────────────────────────────────────
+# Dockerfile.dev — Development environment for smooth_nav
+# Base: ROS 2 Humble Desktop + Gazebo Classic 11
+# ──────────────────────────────────────────────────────────────
+FROM osrf/ros:humble-desktop
+
+ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-c"]
+
+# ── System dependencies ──────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-gazebo-ros-pkgs \
+    ros-humble-turtlebot3 \
+    ros-humble-turtlebot3-gazebo \
+    ros-humble-turtlebot3-description \
+    ros-humble-turtlebot3-teleop \
+    ros-humble-robot-state-publisher \
+    ros-humble-joint-state-publisher \
+    ros-humble-rviz2 \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-geometry-msgs \
+    ros-humble-nav-msgs \
+    ros-humble-launch-testing \
+    ros-humble-launch-testing-ament-cmake \
+    ros-humble-launch-testing-ros \
+    python3-colcon-common-extensions \
+    python3-rosdep \
+    build-essential \
+    cmake \
+    gdb \
+    git \
+    vim \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── TurtleBot3 model ─────────────────────────────────────────
+ENV TURTLEBOT3_MODEL=burger
+
+# ── Workspace setup ──────────────────────────────────────────
+WORKDIR /ros2_ws
+COPY src/ src/
+
+# ── Build ─────────────────────────────────────────────────────
+RUN source /opt/ros/humble/setup.bash && \
+    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+    echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc
+
+# ── Entrypoint ────────────────────────────────────────────────
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

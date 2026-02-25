@@ -1,0 +1,24 @@
+# Default waypoint configurations
+waypoints:
+  # S-curve waypoints (default)
+  s_curve:
+    x: [0.0, 1.0, 2.0, 3.0, 4.0, 4.0, 3.0, 2.0, 1.0, 0.0]
+    y: [0.0, 0.0, 0.5, 0.5, 0.0, -1.0, -1.5, -1.5, -1.0, 0.0]
+
+  # Simple straight line
+  straight:
+    x: [0.0, 1.0, 2.0, 3.0]
+    y: [0.0, 0.0, 0.0, 0.0]
+
+  # Square path
+  square:
+    x: [0.0, 2.0, 2.0, 0.0, 0.0]
+    y: [0.0, 0.0, 2.0, 2.0, 0.0]
+
+  # Figure-8
+  figure_eight:
+    x: [0.0, 1.0, 2.0, 1.5, 0.5, 0.0, -0.5, -1.5, -2.0, -1.0, 0.0]
+    y: [0.0, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.0]
+
+# Active waypoint set
+active_waypoint_set: "s_curve"

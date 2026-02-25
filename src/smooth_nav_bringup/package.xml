@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>smooth_nav_bringup</name>
+  <version>1.0.0</version>
+  <description>
+    Master bringup launch files and waypoint configurations.
+    Orchestrates all smooth_nav packages into a working pipeline.
+  </description>
+  <maintainer email="student@university.edu">Student</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>smooth_nav_ros</exec_depend>
+  <exec_depend>smooth_nav_controller</exec_depend>
+  <exec_depend>smooth_nav_description</exec_depend>
+  <exec_depend>smooth_nav_simulation</exec_depend>
+  <exec_depend>smooth_nav_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

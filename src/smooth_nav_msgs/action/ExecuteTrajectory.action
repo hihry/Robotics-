@@ -1,0 +1,13 @@
+# Goal: execute a trajectory
+smooth_nav_msgs/Trajectory trajectory
+---
+# Result
+bool success
+float64 total_time
+float64 max_cross_track_error
+float64 mean_cross_track_error
+---
+# Feedback
+float64 progress_percent
+float64 cross_track_error
+float64 heading_error

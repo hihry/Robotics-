@@ -1,0 +1,6 @@
+# Gazebo simulation configuration
+# Override physics and rendering settings here if needed
+simulation:
+  ros__parameters:
+    use_sim_time: true
+    real_time_factor: 1.0

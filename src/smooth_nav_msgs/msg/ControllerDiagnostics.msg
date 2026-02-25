@@ -1,0 +1,8 @@
+# Controller diagnostics for monitoring
+std_msgs/Header header
+float64 cross_track_error
+float64 heading_error
+float64 cmd_linear_velocity
+float64 cmd_angular_velocity
+float64 progress_percent
+uint32 nearest_trajectory_index
