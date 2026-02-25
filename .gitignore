@@ -1,0 +1,30 @@
+# Build outputs
+build/
+install/
+log/
+
+# Docker
+.docker/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# ROS2 bag files
+rosbag2_*/
+
+# Generated plots (kept in docs/)
+*.png
+!docs/*.png

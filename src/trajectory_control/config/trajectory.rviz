@@ -1,0 +1,86 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /TF1
+        - /SmoothedPath1
+        - /ActualPath1
+        - /Waypoints1
+      Splitter Ratio: 0.5
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Line Style:
+        Line Width: 0.03
+        Value: Lines
+      Normal Cell Count: 0
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Scale: 0.3
+
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+
+    - Class: rviz_default_plugins/Path
+      Name: SmoothedPath
+      Enabled: true
+      Topic:
+        Value: /smoothed_path
+      Color: 0; 255; 0
+      Line Style: Lines
+      Line Width: 0.03
+      Pose Style: None
+
+    - Class: rviz_default_plugins/Path
+      Name: ActualPath
+      Enabled: true
+      Topic:
+        Value: /actual_path
+      Color: 0; 100; 255
+      Line Style: Lines
+      Line Width: 0.02
+      Pose Style: None
+
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Waypoints
+      Enabled: true
+      Topic:
+        Value: /original_waypoints
+
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: odom
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/FocusCamera
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: TopDown
+      Near Clip Distance: 0.01
+      Scale: 100
+      Target Frame: <Fixed Frame>
+      X: 2.0
+      Y: 0.0
