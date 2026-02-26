@@ -47,7 +47,7 @@ TEST_F(SmootherServiceTest, SmoothsWaypoints) {
     smooth_nav_msgs::msg::Waypoint wp;
     wp.x = x;
     wp.y = y;
-    request->waypoints.push_back(wp);
+    request->waypoints.waypoints.push_back(wp);
   }
 
   auto future = client_->async_send_request(request);
@@ -67,7 +67,7 @@ TEST_F(SmootherServiceTest, RejectsLessThanTwoPoints) {
   smooth_nav_msgs::msg::Waypoint wp;
   wp.x = 0.0;
   wp.y = 0.0;
-  request->waypoints.push_back(wp);
+  request->waypoints.waypoints.push_back(wp);
 
   auto future = client_->async_send_request(request);
   ASSERT_EQ(rclcpp::spin_until_future_complete(node_, future, 10s),

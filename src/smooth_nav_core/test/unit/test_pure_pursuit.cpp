@@ -138,8 +138,8 @@ TEST_F(PurePursuitTest, GoalDecelerationReducesSpeed)
   controller.setGoalDecelerationRadius(0.5);
   controller.setTrajectory(trajectory);
 
-  // Very close to goal but not within tolerance
-  Pose2D near_goal(1.96, 0.0, 0.0);
+  // Close to goal (inside decel radius 0.5) but outside goal tolerance 0.05
+  Pose2D near_goal(1.8, 0.0, 0.0);
   auto cmd = controller.computeControl(near_goal, 5.0);
 
   // Speed should be reduced compared to full speed

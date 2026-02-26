@@ -69,9 +69,10 @@ TEST_F(TrackerActionTest, ExecutesShortTrajectory) {
     smooth_nav_msgs::msg::TrajectoryPoint tp;
     tp.x = i * 0.1;
     tp.y = 0.0;
-    tp.theta = 0.0;
+    tp.heading = 0.0;
     tp.velocity = 0.1;
-    tp.time_from_start = i * 1.0;
+    tp.stamp.sec = i;
+    tp.stamp.nanosec = 0;
     tp.arc_length = i * 0.1;
     goal.trajectory.points.push_back(tp);
   }
@@ -83,8 +84,8 @@ TEST_F(TrackerActionTest, ExecutesShortTrajectory) {
       [&feedback_received](GoalHandleExec::SharedPtr,
                            const std::shared_ptr<const ExecuteTrajectory::Feedback> fb) {
         feedback_received = true;
-        EXPECT_GE(fb->progress, 0.0);
-        EXPECT_LE(fb->progress, 100.0);
+        EXPECT_GE(fb->progress_percent, 0.0);
+        EXPECT_LE(fb->progress_percent, 100.0);
       };
 
   auto goal_handle_future = action_client_->async_send_goal(goal, send_goal_options);

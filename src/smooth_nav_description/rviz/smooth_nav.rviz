@@ -59,6 +59,45 @@ Visualization Manager:
         Value: /odom
       Keep: 100
 
+    - Class: rviz_default_plugins/MarkerArray
+      Name: CurvatureMarkers
+      Enabled: true
+      Topic:
+        Value: /curvature_markers
+
+    - Class: rviz_default_plugins/Path
+      Name: TrajectoryPath
+      Enabled: true
+      Topic:
+        Value: /trajectory_path
+      Color: 255; 165; 0
+      Line Style: Lines
+      Buffer Length: 1
+
+    - Class: rviz_default_plugins/MarkerArray
+      Name: VelocityProfile
+      Enabled: true
+      Topic:
+        Value: /velocity_profile
+
+    - Class: rviz_default_plugins/MarkerArray
+      Name: TrajectoryMarkers
+      Enabled: true
+      Topic:
+        Value: /trajectory_markers
+
+    - Class: rviz_default_plugins/MarkerArray
+      Name: WaypointMarkers
+      Enabled: true
+      Topic:
+        Value: /waypoint_markers
+
+    - Class: rviz_default_plugins/MarkerArray
+      Name: CmdVelArrow
+      Enabled: true
+      Topic:
+        Value: /velocity_command_markers
+
   Global Options:
     Background Color: 48; 48; 48
     Fixed Frame: odom

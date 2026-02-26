@@ -7,6 +7,7 @@ Launches:
   3. Path smoother service node
   4. Trajectory generator service node
   5. Trajectory tracker action server
+  6. Safety watchdog (cmd_vel_raw → cmd_vel with velocity/accel limiting)
 
 Usage:
   ros2 launch smooth_nav_bringup smooth_nav.launch.py
@@ -22,6 +23,7 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -80,6 +82,23 @@ def generate_launch_description():
         ),
     )
 
+    # 5. Safety watchdog: sits between /cmd_vel_raw and /cmd_vel
+    safety_watchdog = Node(
+        package='smooth_nav_bringup',
+        executable='safety_watchdog_node.py',
+        name='safety_watchdog',
+        output='screen',
+        parameters=[{
+            'max_linear_velocity': 0.22,
+            'max_angular_velocity': 2.84,
+            'max_linear_acceleration': 0.5,
+            'max_angular_acceleration': 3.0,
+            'cmd_vel_timeout': 0.5,
+            'use_laser_safety': False,
+            'obstacle_stop_distance': 0.20,
+        }],
+    )
+
     return LaunchDescription([
         tb3_model,
         world_arg,
@@ -88,4 +107,5 @@ def generate_launch_description():
         display_launch,
         ros_launch,
         controller_launch,
+        safety_watchdog,
     ])

@@ -69,7 +69,7 @@ TEST_F(TrapezoidalVelocityTest, ThrowsOnInvalidParams)
 
 TEST_F(TrapezoidalVelocityTest, CurvatureLimitReducesVelocityOnTurns)
 {
-  gen.setMaxLateralAcceleration(0.2);  // tight limit
+  gen.setMaxLateralAcceleration(0.01);  // very tight limit so v_curv < v_max on S-curve
 
   // S-curve has significant curvature
   auto wps = test::sCurve();
@@ -148,7 +148,7 @@ TEST_F(ConstantVelocityTest, InteriorPointsHaveConstantVelocity)
 
 TEST_F(ConstantVelocityTest, CurvatureLimitWhenEnabled)
 {
-  gen.setMaxLateralAcceleration(0.2);
+  gen.setMaxLateralAcceleration(0.01);  // tight enough so v_curv < v_max on S-curve
 
   auto wps = test::sCurve();
   auto path = smoother.smooth(wps, 200);

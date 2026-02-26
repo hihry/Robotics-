@@ -29,7 +29,7 @@ add_executable(trajectory_generator_node
 )
 ament_target_dependencies(trajectory_generator_node
   rclcpp smooth_nav_core smooth_nav_msgs
-  nav_msgs geometry_msgs
+  nav_msgs geometry_msgs std_msgs visualization_msgs
 )
 
 # ─── Install ─────────────────────────────────────────────────────────────

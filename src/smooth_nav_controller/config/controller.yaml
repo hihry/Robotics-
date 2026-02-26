@@ -2,12 +2,14 @@
 trajectory_tracker_node:
   ros__parameters:
     # Pure Pursuit
-    look_ahead_distance: 0.3      # meters
+    look_ahead_distance: 0.3      # meters — base look-ahead distance
+    adaptive_look_ahead_gain: 0.5 # L_d = L_d_base + gain * |v|  (0 = fixed)
     max_linear_velocity: 0.18     # TurtleBot3 Burger max: 0.22 m/s
     max_angular_velocity: 2.0     # rad/s
 
-    # Goal tolerance
+    # Goal zone
     goal_tolerance: 0.08          # meters — distance to goal to consider "arrived"
+    goal_deceleration_radius: 0.3 # meters — linearly decelerate inside this radius
 
     # PID gains for cross-track error correction
     pid_kp: 1.0
