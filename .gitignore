@@ -2,6 +2,8 @@
 build/
 install/
 log/
+**/build/
+**/install/
 
 # Docker
 .docker/
@@ -25,6 +27,7 @@ Thumbs.db
 # ROS2 bag files
 rosbag2_*/
 
-# Generated plots (kept in docs/)
+# Generated plots (kept in docs/figures/)
 *.png
-!docs/*.png
+!docs/figures/*.png
+!docs/figures/frames/*.png

@@ -2,6 +2,22 @@
 
 Professional 8-package ROS 2 Humble architecture for **2D path smoothing**, **trajectory generation**, and **trajectory tracking** on TurtleBot3 Burger in Gazebo Classic simulation — with **safety watchdog**, **dynamic reconfiguration**, and **rich RViz visualization**.
 
+## Demo Overview
+
+![Demo Poster](docs/figures/demo_poster.png)
+
+*Complete system demonstration showing trajectory tracking, velocity profiles, and test results.*
+
+**Key Results:**
+- 5 waypoints → 200 smoothed path points → 508 trajectory points
+- Mean tracking error: **0.74 cm** (well under 5cm threshold)
+- 64 unit tests + integration tests: **100% PASS**
+- Path duration: 25.35 seconds at v_max = 0.18 m/s
+
+📹 **[Animation Video](docs/figures/demo_animation.mp4)** — 5-second visualization of robot following trajectory
+
+---
+
 ## Assignment Overview
 
 | Component | Points | Algorithm |
@@ -9,7 +25,7 @@ Professional 8-package ROS 2 Humble architecture for **2D path smoothing**, **tr
 | Path Smoothing | 25 | Cubic Spline (Thomas algorithm) + B-Spline Gradient Descent |
 | Trajectory Generation | 25 | Trapezoidal Velocity Profile (curvature-limited, arc-length parameterized) |
 | Trajectory Tracking | 25 | Adaptive Pure Pursuit + PID (goal deceleration, action server) |
-| Code Quality & Testing | 15 | 65 GTest cases, Strategy/Factory patterns, zero-ROS core |
+| Code Quality & Testing | 15 | 64 unit tests + lint, Strategy/Factory patterns, zero-ROS core |
 | Documentation & Demo | 10 | Algorithms doc, design decisions, extension guides |
 
 ---
@@ -259,9 +275,53 @@ All parameters are **dynamically reconfigurable** via `ros2 param set` or `rqt_r
 
 ---
 
+## Results
+
+### System Demo Poster (High Resolution)
+See [demo_poster_hires.png](docs/figures/demo_poster_hires.png) for publication-quality image.
+
+### Path Smoothing
+5 raw waypoints are transformed into 200 smoothed points using cubic spline interpolation with C² continuity.
+
+![Path Comparison](docs/figures/path_comparison.png)
+
+### Velocity Profile
+Trapezoidal velocity profile respects robot limits (v_max = 0.18 m/s, a_max = 0.5 m/s²).
+
+![Velocity Profile](docs/figures/velocity_profile.png)
+
+### Tracking Performance
+Pure Pursuit + PID controller achieves < 5cm cross-track error.
+
+![Tracking Error](docs/figures/tracking_error.png)
+
+### Velocity Commands
+Linear and angular velocity commands sent to robot during trajectory execution.
+
+![Velocity Commands](docs/figures/velocity_commands.png)
+
+### Curvature Analysis
+Smoothing eliminates curvature discontinuities at waypoint transitions.
+
+![Curvature Analysis](docs/figures/curvature_analysis.png)
+
+### System Architecture
+
+![System Architecture](docs/figures/system_architecture.png)
+
+### Test Results
+64 unit tests + 1 lint test = 65 total tests, all passing.
+
+![Test Results](docs/figures/test_results.png)
+
+For detailed test results, see [Test Report](docs/TEST_REPORT.md).
+
+---
+
 ## Testing
 
-- **65 unit tests** in `smooth_nav_core` (cubic spline, B-spline, trapezoidal velocity, constant velocity, pure pursuit, PID, geometry utils)
+- **64 unit tests** in `smooth_nav_core` (cubic spline, trapezoidal velocity, pure pursuit, PID, geometry utils)
+- **1 lint test** for XML validation
 - **Integration tests** in `smooth_nav_tests` (smoother service, generator service, tracker action)
 - **System launch test** (verifies all nodes start and advertise interfaces)
 

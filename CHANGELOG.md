@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.0] — 2025-06-XX
+## [2.0.0] — 2026-02-26
 
 ### Added
 - **Safety watchdog node** (`safety_watchdog_node.py`) — `/cmd_vel_raw` → `/cmd_vel` interposer with velocity clamping, acceleration limiting, command timeout, and laser proximity stop
@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file.
 - Upgraded `path_smoother_node` — publishes curvature color-mapped markers, dynamic reconfig
 - Upgraded `trajectory_generator_node` — curvature-limited profiles, publishes velocity profile markers
 - Upgraded `trajectory_tracker_node` — adaptive look-ahead, goal deceleration, publishes velocity command arrows
-- Unit tests expanded from 30 → **65 GTest cases** (all passing)
+- Unit tests expanded from 30 → **64 GTest cases + 1 lint test** (all passing)
 - Integration tests fixed: msg field mismatches (`smooth_path` → `smoothed_path`, `points` → `waypoints`, `total_time` → `duration`)
 - `demo.launch.py` launches full pipeline including safety watchdog
 - Updated documentation: algorithms, design decisions, README
@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [1.0.0] — 2025-01-XX
+## [1.0.0] — 2025-12-01
 
 ### Added
 - 8-package `smooth_nav` architecture

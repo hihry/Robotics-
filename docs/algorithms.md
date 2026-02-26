@@ -123,12 +123,6 @@ where $d_{goal}$ is the distance to the last trajectory point and $r_{decel}$ is
 
 ### 3.4 PID Controller (cross-track correction)
 
-Layered on top of Pure Pursuit for fine heading error correction:
-
-$$u(t) = K_p e(t) + K_i \int_0^t e(\tau) d\tau + K_d \frac{de}{dt}$$
-
-### 3.4 PID Controller (cross-track correction)
-
 Layered on top of Pure Pursuit for fine cross-track error correction:
 
 $$\omega_{correction} = K_p \cdot e_{cte} + K_i \int_0^t e_{cte}(\tau) d\tau + K_d \frac{de_{cte}}{dt}$$
