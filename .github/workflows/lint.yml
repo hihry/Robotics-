@@ -10,7 +10,7 @@ jobs:
   ament-lint:
     runs-on: ubuntu-22.04
     container:
-      image: osrf/ros:humble-ros-base
+      image: ros:humble-ros-base
     steps:
       - uses: actions/checkout@v4
 
