@@ -41,23 +41,37 @@ ros2 launch smooth_nav_controller controller.launch.py
 
 ### 4. Tuning
 
-Key parameters to adjust for real hardware:
+Key parameters to adjust for real hardware (all live-tunable via `rqt_reconfigure`):
 
 | Parameter | Sim Value | Real Starting Value | Notes |
 |-----------|-----------|-------------------|-------|
 | `max_linear_velocity` | 0.22 | 0.15 | Start conservative |
 | `max_angular_velocity` | 2.84 | 1.5 | Reduce for stability |
 | `look_ahead_distance` | 0.3 | 0.4 | Increase for sensor lag |
+| `adaptive_look_ahead_gain` | 0.5 | 0.3 | Lower for real-world lag |
+| `max_lateral_acceleration` | 1.0 | 0.5 | Tighter for wheel-slip prevention |
+| `goal_deceleration_radius` | 0.5 | 0.8 | Larger for real inertia |
 | `kp_heading` | 2.0 | 1.0 | Lower gains initially |
 | `goal_tolerance` | 0.05 | 0.10 | Larger for real noise |
 | `control_rate` | 20.0 | 10.0 | Match sensor rate |
 
-### 5. Safety Additions
+### 5. Safety Layer (Already Implemented)
 
-For a real robot, add:
-- **Emergency stop** node subscribing to `/scan` for obstacle proximity
-- **Velocity governor** that clamps `/cmd_vel` based on battery and IMU data
-- **Watchdog timer** that stops the robot if no control command in 500 ms
+The following safety features are **already part of smooth_nav** via `safety_watchdog_node`:
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| **Emergency stop** (laser proximity) | ✅ Implemented | Subscribes to `/scan`, stops when obstacle within `safety_distance` (default 0.3 m) |
+| **Velocity governor** | ✅ Implemented | Clamps `/cmd_vel_raw` to `max_linear_velocity` / `max_angular_velocity` |
+| **Command timeout watchdog** | ✅ Implemented | Publishes zero-velocity if no command received within `cmd_vel_timeout` (default 0.5 s) |
+| **Acceleration limiter** | ✅ Implemented | Limits linear acceleration to `max_linear_acceleration` (default 0.5 m/s²) |
+
+For real deployment, tune the safety parameters:
+```bash
+ros2 param set /safety_watchdog safety_distance 0.5        # wider margin
+ros2 param set /safety_watchdog max_linear_velocity 0.15   # conservative
+ros2 param set /safety_watchdog cmd_vel_timeout 0.3        # faster timeout
+```
 
 ---
 
