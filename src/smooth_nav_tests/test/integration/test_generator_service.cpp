@@ -8,7 +8,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <smooth_nav_msgs/srv/generate_trajectory.hpp>
 #include <smooth_nav_msgs/msg/smoothed_path.hpp>
-#include <smooth_nav_msgs/msg/waypoint.hpp>
+#include <geometry_msgs/msg/point.hpp>
 #include <chrono>
 #include <cmath>
 
@@ -42,9 +42,10 @@ TEST_F(GeneratorServiceTest, GeneratesTrajectory) {
 
   // Build a straight-line smoothed path
   for (int i = 0; i <= 10; ++i) {
-    smooth_nav_msgs::msg::Waypoint pt;
+    geometry_msgs::msg::Point pt;
     pt.x = i * 0.3;
     pt.y = 0.0;
+    pt.z = 0.0;
     request->smoothed_path.points.push_back(pt);
   }
   request->max_velocity = 0.22;
@@ -61,8 +62,11 @@ TEST_F(GeneratorServiceTest, GeneratesTrajectory) {
 
   // Verify timestamps are monotonically increasing
   for (size_t i = 1; i < response->trajectory.points.size(); ++i) {
-    EXPECT_GE(response->trajectory.points[i].time_from_start,
-              response->trajectory.points[i - 1].time_from_start);
+    double t_i = response->trajectory.points[i].stamp.sec +
+                 response->trajectory.points[i].stamp.nanosec * 1e-9;
+    double t_prev = response->trajectory.points[i - 1].stamp.sec +
+                    response->trajectory.points[i - 1].stamp.nanosec * 1e-9;
+    EXPECT_GE(t_i, t_prev);
   }
 }
 

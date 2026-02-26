@@ -15,6 +15,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 # ─── Trajectory Tracker Node ─────────────────────────────────────────────
 add_executable(trajectory_tracker_node
@@ -24,7 +25,7 @@ ament_target_dependencies(trajectory_tracker_node
   rclcpp rclcpp_action
   smooth_nav_core smooth_nav_msgs
   nav_msgs geometry_msgs std_msgs
-  tf2 tf2_geometry_msgs
+  tf2 tf2_geometry_msgs visualization_msgs
 )
 
 # ─── Install ─────────────────────────────────────────────────────────────

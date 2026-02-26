@@ -15,4 +15,5 @@ trajectory_generator_node:
     generator_type: "trapezoidal"   # "trapezoidal" | "constant"
     max_velocity: 0.18              # TurtleBot3 Burger max: 0.22 m/s
     max_acceleration: 0.5           # m/s²
+    max_lateral_acceleration: 0.5   # m/s² — curvature-based speed limiting
     time_step: 0.05                 # 20 Hz trajectory sampling
