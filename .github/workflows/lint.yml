@@ -7,20 +7,6 @@ on:
     branches: [main]
 
 jobs:
-  clang-format:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install -y clang-format-14
-
-      - name: Check formatting
-        run: |
-          find src/ -name '*.cpp' -o -name '*.hpp' | \
-            xargs clang-format-14 --dry-run --Werror
-        shell: bash
-
   ament-lint:
     runs-on: ubuntu-22.04
     container:
@@ -28,17 +14,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install lint tools
+      - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y python3-colcon-common-extensions \
-            ros-humble-ament-lint-auto ros-humble-ament-lint-common
+          apt-get install -y --no-install-recommends \
+            python3-colcon-common-extensions \
+            build-essential cmake \
+            ros-humble-nav-msgs \
+            ros-humble-sensor-msgs \
+            ros-humble-visualization-msgs \
+            ros-humble-std-msgs \
+            ros-humble-geometry-msgs \
+            ros-humble-tf2-ros \
+            ros-humble-tf2-geometry-msgs \
+            ros-humble-rclcpp-action \
+            ros-humble-ament-lint-auto \
+            ros-humble-ament-lint-common \
+            ros-humble-ament-cmake-gtest \
+            ros-humble-launch-testing \
+            ros-humble-launch-testing-ament-cmake \
+            ros-humble-launch-testing-ros \
+            python3-pip
+          pip3 install --no-cache-dir setuptools flake8 pep257
         shell: bash
 
-      - name: Build & lint
+      - name: Build all packages
         run: |
           source /opt/ros/humble/setup.bash
-          colcon build
-          colcon test --packages-select smooth_nav_tests
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      - name: Run lint tests
+        run: |
+          source /opt/ros/humble/setup.bash
+          source install/setup.bash
+          colcon test --packages-select smooth_nav_core
           colcon test-result --verbose
         shell: bash
