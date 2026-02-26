@@ -1,3 +1,6 @@
+// Copyright 2026 smooth_nav Authors
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @file test_smoother_service.cpp
  * @brief Integration test — verifies the /path_smoother/smooth_path service.
@@ -6,12 +9,14 @@
  * response contains a valid smoothed path with more points than input.
  */
 
-#include <gtest/gtest.h>
-#include <rclcpp/rclcpp.hpp>
-#include <smooth_nav_msgs/srv/smooth_path.hpp>
-#include <smooth_nav_msgs/msg/waypoint.hpp>
 #include <chrono>
 #include <memory>
+
+#include <gtest/gtest.h>
+#include <rclcpp/rclcpp.hpp>
+
+#include <smooth_nav_msgs/srv/smooth_path.hpp>
+#include <smooth_nav_msgs/msg/waypoint.hpp>
 
 using namespace std::chrono_literals;
 

@@ -1,6 +1,7 @@
-"""
-Launch the trajectory tracker controller node.
-"""
+# Copyright 2026 smooth_nav Authors
+# SPDX-License-Identifier: Apache-2.0
+
+"""Launch the trajectory tracker controller node."""
 
 from launch import LaunchDescription
 from launch_ros.actions import Node

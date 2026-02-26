@@ -24,11 +24,17 @@ jobs:
             ros-humble-nav-msgs \
             ros-humble-sensor-msgs \
             ros-humble-visualization-msgs \
+            ros-humble-std-msgs \
+            ros-humble-geometry-msgs \
             ros-humble-tf2-ros \
             ros-humble-tf2-geometry-msgs \
+            ros-humble-rclcpp-action \
             ros-humble-launch-testing \
             ros-humble-launch-testing-ament-cmake \
             ros-humble-launch-testing-ros \
+            ros-humble-ament-lint-auto \
+            ros-humble-ament-lint-common \
+            ros-humble-ament-cmake-gtest \
             python3-pip
           pip3 install --no-cache-dir setuptools
         shell: bash

@@ -1,3 +1,6 @@
+// Copyright 2026 smooth_nav Authors
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @file trajectory_tracker_node.cpp
  * @brief ROS 2 action server — tracks a trajectory using Pure Pursuit + PID.
@@ -31,6 +34,13 @@
  *   - Diagnostics for live tuning in rqt_plot / PlotJuggler.
  */
 
+#include <cmath>
+#include <memory>
+#include <mutex>
+#include <numeric>
+#include <string>
+#include <vector>
+
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <geometry_msgs/msg/twist.hpp>
@@ -46,13 +56,6 @@
 
 #include "smooth_nav_core/controller/pure_pursuit_controller.hpp"
 #include "smooth_nav_core/math/types.hpp"
-
-#include <memory>
-#include <mutex>
-#include <string>
-#include <vector>
-#include <cmath>
-#include <numeric>
 
 namespace smooth_nav_controller
 {

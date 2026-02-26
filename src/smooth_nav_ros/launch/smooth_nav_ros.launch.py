@@ -1,6 +1,7 @@
-"""
-Launch file for smooth_nav_ros service nodes (path smoother + trajectory generator).
-"""
+# Copyright 2026 smooth_nav Authors
+# SPDX-License-Identifier: Apache-2.0
+
+"""Launch smooth_nav_ros service nodes (path smoother + trajectory generator)."""
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
