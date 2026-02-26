@@ -22,11 +22,15 @@ jobs:
             python3-colcon-common-extensions \
             build-essential cmake \
             ros-humble-nav-msgs \
+            ros-humble-sensor-msgs \
+            ros-humble-visualization-msgs \
             ros-humble-tf2-ros \
             ros-humble-tf2-geometry-msgs \
             ros-humble-launch-testing \
             ros-humble-launch-testing-ament-cmake \
-            ros-humble-launch-testing-ros
+            ros-humble-launch-testing-ros \
+            python3-pip
+          pip3 install --no-cache-dir setuptools
         shell: bash
 
       - name: Build
@@ -40,6 +44,6 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           source $GITHUB_WORKSPACE/install/setup.bash
-          colcon test --packages-select smooth_nav_core --return-code-on-test-failure
+          colcon test --return-code-on-test-failure
           colcon test-result --verbose
         shell: bash

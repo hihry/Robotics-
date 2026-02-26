@@ -1,15 +1,15 @@
 # smooth_nav — TurtleBot3 Path Smoothing & Trajectory Control
 
-Professional 8-package ROS 2 Humble architecture for **2D path smoothing**, **trajectory generation**, and **trajectory tracking** on TurtleBot3 Burger in Gazebo Classic simulation.
+Professional 8-package ROS 2 Humble architecture for **2D path smoothing**, **trajectory generation**, and **trajectory tracking** on TurtleBot3 Burger in Gazebo Classic simulation — with **safety watchdog**, **dynamic reconfiguration**, and **rich RViz visualization**.
 
 ## Assignment Overview
 
 | Component | Points | Algorithm |
 |-----------|--------|-----------|
 | Path Smoothing | 25 | Cubic Spline (Thomas algorithm) + B-Spline Gradient Descent |
-| Trajectory Generation | 25 | Trapezoidal Velocity Profile (arc-length parameterized) |
-| Trajectory Tracking | 25 | Pure Pursuit + PID Heading Correction (Action Server) |
-| Code Quality & Testing | 15 | 30+ GTest cases, Strategy/Factory patterns, zero-ROS core |
+| Trajectory Generation | 25 | Trapezoidal Velocity Profile (curvature-limited, arc-length parameterized) |
+| Trajectory Tracking | 25 | Adaptive Pure Pursuit + PID (goal deceleration, action server) |
+| Code Quality & Testing | 15 | 65 GTest cases, Strategy/Factory patterns, zero-ROS core |
 | Documentation & Demo | 10 | Algorithms doc, design decisions, extension guides |
 
 ---
@@ -42,9 +42,28 @@ Professional 8-package ROS 2 Humble architecture for **2D path smoothing**, **tr
 ### Pipeline Flow
 
 ```
-Waypoints → [SmoothPath Service] → SmoothedPath → [GenerateTrajectory Service] → Trajectory
-                                                                                      ↓
-                      /cmd_vel ← [ExecuteTrajectory Action] ← /odom + Trajectory
+                    ┌─────────────────────────────────┐
+                    │       waypoint_client_node       │  ← Pipeline orchestrator (Python)
+                    │   reads YAML → calls services    │
+                    └──────┬──────────┬───────────┬───┘
+                           │          │           │
+                    SmoothPath   GenerateTraj  ExecuteTraj
+                    Service      Service       Action
+                           │          │           │
+                           ▼          ▼           ▼
+                    path_smoother  traj_gen   traj_tracker
+                    _node          _node      _node
+                           │          │           │
+                           └────┬─────┘           │
+                                ▼                 ▼
+                         smooth_nav_core    /cmd_vel_raw
+                         (Pure C++17)            │
+                                                 ▼
+                                          safety_watchdog
+                                          _node (Python)
+                                                 │
+                                                 ▼
+                                            /cmd_vel → Robot
 ```
 
 ---
@@ -73,7 +92,15 @@ source install/setup.bash
 ### 3. Launch full demo
 ```bash
 # Start VcXsrv first (Windows) with "Disable access control" checked
+
+# Option A: Full sim + auto-running pipeline
+ros2 launch smooth_nav_bringup demo.launch.py
+
+# Option B: Sim only (call services manually)
 ros2 launch smooth_nav_bringup smooth_nav.launch.py
+
+# Option C: Choose a waypoint set
+ros2 launch smooth_nav_bringup demo.launch.py waypoint_set:=figure_eight
 ```
 
 ### 4. Run unit tests
@@ -149,22 +176,52 @@ RoboticsAssignment/
 | **Factory** | `SmootherFactory::create(type)` | Instantiate strategies by name |
 | **Interface Segregation** | Separate abstract interfaces | Each node depends only on what it uses |
 | **Config Over Code** | YAML params loaded at launch | Tune without recompiling |
+| **Pipeline Orchestrator** | `waypoint_client_node` | Sequences Smooth → Generate → Execute |
+| **Safety Interposer** | `safety_watchdog_node` | Transparent `/cmd_vel_raw` → `/cmd_vel` filtering |
+| **Dynamic Reconfiguration** | All C++ nodes | `add_on_set_parameters_callback` for live tuning |
 
 ---
 
 ## Key Parameters
 
+All parameters are **dynamically reconfigurable** via `ros2 param set` or `rqt_reconfigure` — no restart required.
+
+### Path Smoother
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `smoother_type` | `cubic_spline` | `cubic_spline` or `bspline` |
 | `num_smooth_points` | 200 | Interpolation density |
+| `bspline_weight_data` | 0.1 | B-spline data fidelity weight |
+| `bspline_weight_smooth` | 0.3 | B-spline smoothness weight |
+
+### Trajectory Generator
+| Parameter | Default | Description |
+|-----------|---------|-------------|
 | `generator_type` | `trapezoidal` | `trapezoidal` or `constant` |
-| `max_velocity` | 0.22 m/s | TurtleBot3 Burger max |
+| `max_velocity` | 0.18 m/s | Target cruise speed |
 | `max_acceleration` | 0.5 m/s² | Trapezoidal ramp rate |
-| `look_ahead_distance` | 0.3 m | Pure Pursuit L_d |
-| `goal_tolerance` | 0.05 m | Completion threshold |
-| `kp / ki / kd` | 2.0 / 0.0 / 0.1 | Heading PID gains |
+| `max_lateral_acceleration` | 0.5 m/s² | Curvature-based speed limiting |
+| `time_step` | 0.05 s | Trajectory sampling period |
+
+### Trajectory Tracker
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `look_ahead_distance` | 0.3 m | Pure Pursuit base $L_d$ |
+| `adaptive_look_ahead_gain` | 0.5 | $L_d = L_{d,base} + k \cdot |v|$ |
+| `goal_deceleration_radius` | 0.3 m | Linear deceleration zone before goal |
+| `goal_tolerance` | 0.08 m | Completion threshold |
+| `pid_kp / ki / kd` | 1.0 / 0.0 / 0.1 | Cross-track PID gains |
 | `control_rate` | 20.0 Hz | Controller loop frequency |
+
+### Safety Watchdog
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_linear_velocity` | 0.22 m/s | Hardware velocity limit |
+| `max_angular_velocity` | 2.84 rad/s | Hardware angular limit |
+| `max_linear_acceleration` | 0.5 m/s² | Jerk-free acceleration limit |
+| `cmd_vel_timeout` | 0.5 s | Emergency stop if no command |
+| `use_laser_safety` | false | Enable proximity obstacle stop |
+| `obstacle_stop_distance` | 0.20 m | LaserScan stop threshold |
 
 ---
 
@@ -186,17 +243,26 @@ RoboticsAssignment/
 |-------|------|------|
 | `/smoothed_path` | `nav_msgs/Path` | path_smoother_node |
 | `/original_waypoints` | `visualization_msgs/MarkerArray` | path_smoother_node |
-| `/cmd_vel` | `geometry_msgs/Twist` | trajectory_tracker_node |
+| `/curvature_markers` | `visualization_msgs/MarkerArray` | path_smoother_node |
+| `/trajectory_path` | `nav_msgs/Path` | trajectory_generator_node |
+| `/velocity_profile` | `visualization_msgs/MarkerArray` | trajectory_generator_node |
+| `/cmd_vel_raw` | `geometry_msgs/Twist` | trajectory_tracker_node |
 | `/actual_path` | `nav_msgs/Path` | trajectory_tracker_node |
 | `/tracking_error` | `std_msgs/Float64` | trajectory_tracker_node |
 | `/controller_diagnostics` | `smooth_nav_msgs/ControllerDiagnostics` | trajectory_tracker_node |
+| `/velocity_command_markers` | `visualization_msgs/MarkerArray` | trajectory_tracker_node |
+| `/cmd_vel` | `geometry_msgs/Twist` | safety_watchdog_node |
+| `/safety_status` | `std_msgs/String` | safety_watchdog_node |
+| `/pipeline_status` | `std_msgs/String` | waypoint_client_node |
+| `/waypoint_markers` | `visualization_msgs/MarkerArray` | waypoint_client_node |
+| `/trajectory_markers` | `visualization_msgs/MarkerArray` | waypoint_client_node |
 
 ---
 
 ## Testing
 
-- **30+ unit tests** in `smooth_nav_core` (cubic spline, velocity profiles, pure pursuit, PID, geometry)
-- **Integration tests** in `smooth_nav_tests` (service calls, action execution)
+- **65 unit tests** in `smooth_nav_core` (cubic spline, B-spline, trapezoidal velocity, constant velocity, pure pursuit, PID, geometry utils)
+- **Integration tests** in `smooth_nav_tests` (smoother service, generator service, tracker action)
 - **System launch test** (verifies all nodes start and advertise interfaces)
 
 ```bash
