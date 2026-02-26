@@ -1,9 +1,10 @@
 /**
  * @file constant_velocity_generator.cpp
- * @brief Constant velocity trajectory generation.
+ * @brief Constant velocity trajectory generation with optional curvature limit.
  *
- * Simple profile: robot moves at v_max along the entire path.
- * Useful as a baseline for comparison with trapezoidal profile.
+ * Baseline profile: robot moves at v_max along the entire path.
+ * When a_lat_max is set to a finite value, speed is reduced in curves
+ * just like the trapezoidal generator.
  */
 
 #include "smooth_nav_core/trajectory_generator/constant_velocity_generator.hpp"
@@ -17,18 +18,20 @@ namespace smooth_nav_core
 
 void ConstantVelocityGenerator::setMaxVelocity(double v_max)
 {
-  if (v_max <= 0.0) {
-    throw std::invalid_argument("Max velocity must be positive");
-  }
+  if (v_max <= 0.0) throw std::invalid_argument("Max velocity must be positive");
   v_max_ = v_max;
 }
 
 void ConstantVelocityGenerator::setTimeStep(double dt)
 {
-  if (dt <= 0.0) {
-    throw std::invalid_argument("Time step must be positive");
-  }
+  if (dt <= 0.0) throw std::invalid_argument("Time step must be positive");
   dt_ = dt;
+}
+
+void ConstantVelocityGenerator::setMaxLateralAcceleration(double a_lat)
+{
+  if (a_lat <= 0.0) throw std::invalid_argument("Max lateral acceleration must be positive");
+  a_lat_max_ = a_lat;
 }
 
 std::vector<TrajectoryPoint> ConstantVelocityGenerator::generate(
@@ -48,6 +51,7 @@ std::vector<TrajectoryPoint> ConstantVelocityGenerator::generate(
   }
 
   std::vector<TrajectoryPoint> trajectory;
+  trajectory.reserve(static_cast<size_t>(total_length / (v_max_ * dt_)) + 10);
 
   double current_s = 0.0;
   double current_t = 0.0;
@@ -55,43 +59,49 @@ std::vector<TrajectoryPoint> ConstantVelocityGenerator::generate(
   while (current_s < total_length) {
     PathPoint pose = interpolateAtArcLength(path, arc_lengths, current_s);
 
+    // Curvature at nearest point
     size_t nearest_idx = 0;
     for (size_t i = 0; i < arc_lengths.size() - 1; ++i) {
-      if (current_s <= arc_lengths[i + 1]) {
-        nearest_idx = i;
-        break;
-      }
+      if (current_s <= arc_lengths[i + 1]) { nearest_idx = i; break; }
       nearest_idx = i;
     }
     double curvature = computeCurvature(path, nearest_idx);
-    double omega = v_max_ * curvature;
+
+    // Optionally limit speed in curves
+    double v = v_max_;
+    double abs_k = std::abs(curvature);
+    if (abs_k > 1e-6) {
+      double v_curv = std::sqrt(a_lat_max_ / abs_k);
+      v = std::min(v, v_curv);
+    }
+
+    double omega = v * curvature;
 
     TrajectoryPoint tp;
-    tp.x = pose.x;
-    tp.y = pose.y;
-    tp.theta = pose.theta;
-    tp.v = v_max_;
-    tp.omega = omega;
-    tp.curvature = curvature;
-    tp.timestamp = current_t;
+    tp.x          = pose.x;
+    tp.y          = pose.y;
+    tp.theta      = pose.theta;
+    tp.v          = v;
+    tp.omega      = omega;
+    tp.curvature  = curvature;
+    tp.timestamp  = current_t;
     tp.arc_length = current_s;
-
     trajectory.push_back(tp);
 
-    current_s += v_max_ * dt_;
+    current_s += v * dt_;
     current_t += dt_;
   }
 
-  // Final point
+  // Final point at endpoint with zero velocity
   if (!trajectory.empty()) {
     TrajectoryPoint last_tp;
-    last_tp.x = path.back().x;
-    last_tp.y = path.back().y;
-    last_tp.theta = path.back().theta;
-    last_tp.v = 0.0;
-    last_tp.omega = 0.0;
-    last_tp.curvature = 0.0;
-    last_tp.timestamp = current_t;
+    last_tp.x          = path.back().x;
+    last_tp.y          = path.back().y;
+    last_tp.theta      = path.back().theta;
+    last_tp.v          = 0.0;
+    last_tp.omega      = 0.0;
+    last_tp.curvature  = 0.0;
+    last_tp.timestamp  = current_t;
     last_tp.arc_length = total_length;
     trajectory.push_back(last_tp);
   }
