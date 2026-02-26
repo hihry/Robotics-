@@ -1,9 +1,17 @@
 /**
  * @file cubic_spline_smoother.cpp
- * @brief Implementation of natural cubic spline path smoothing.
+ * @brief Natural cubic spline path smoothing — C² continuous.
  *
- * Uses Thomas algorithm tridiagonal solver from spline_math.hpp.
- * Guarantees C2-continuous output (continuous position, velocity, curvature).
+ * Uses the Thomas-algorithm tridiagonal solver from spline_math.hpp,
+ * and **analytic** first / second derivatives for heading and curvature
+ * (no finite-difference approximation).
+ *
+ * Guarantees:
+ *   • Output starts exactly at the first waypoint, ends at the last.
+ *   • Continuous position, velocity (tangent), and curvature.
+ *   • Arc-length values are monotonically non-decreasing.
+ *
+ * Complexity: O(n) spline solve + O(num_points) sampling.
  */
 
 #include "smooth_nav_core/path_smoother/cubic_spline_smoother.hpp"
@@ -15,19 +23,19 @@ namespace smooth_nav_core
 {
 
 std::vector<PathPoint> CubicSplineSmoother::smooth(
-  const std::vector<std::pair<double, double>> & waypoints,
+  const std::vector<std::pair<double, double>> & raw_waypoints,
   int num_points) const
 {
-  // --- Input validation ---
-  if (waypoints.size() < 2) {
+  // ────────────────────── Input validation ──────────────────────
+  if (raw_waypoints.size() < 2) {
     throw std::invalid_argument(
       "CubicSplineSmoother::smooth() requires >= 2 waypoints, got " +
-      std::to_string(waypoints.size()));
+      std::to_string(raw_waypoints.size()));
   }
   if (num_points < 2) {
     throw std::invalid_argument("Number of output points must be >= 2");
   }
-  for (const auto & wp : waypoints) {
+  for (const auto & wp : raw_waypoints) {
     if (std::isnan(wp.first) || std::isnan(wp.second) ||
         std::isinf(wp.first) || std::isinf(wp.second))
     {
@@ -35,85 +43,80 @@ std::vector<PathPoint> CubicSplineSmoother::smooth(
     }
   }
 
+  // Remove consecutive duplicates (zero-length segments break the solver)
+  auto waypoints = removeDuplicates(raw_waypoints);
+  if (waypoints.size() < 2) {
+    throw std::invalid_argument(
+      "After duplicate removal, fewer than 2 unique waypoints remain");
+  }
+
   const size_t n = waypoints.size();
 
-  // Special case: exactly 2 points → linear interpolation
+  // ────────────────── Special case: 2 points (linear) ──────────────────
   if (n == 2) {
     std::vector<PathPoint> result;
     result.reserve(num_points);
     double theta = std::atan2(waypoints[1].second - waypoints[0].second,
-                              waypoints[1].first - waypoints[0].first);
+                              waypoints[1].first  - waypoints[0].first);
+    double total_d = dist(waypoints[0].first, waypoints[0].second,
+                          waypoints[1].first, waypoints[1].second);
     for (int i = 0; i < num_points; ++i) {
       double t = static_cast<double>(i) / (num_points - 1);
       PathPoint pt;
-      pt.x = waypoints[0].first + t * (waypoints[1].first - waypoints[0].first);
-      pt.y = waypoints[0].second + t * (waypoints[1].second - waypoints[0].second);
-      pt.theta = theta;
-      pt.curvature = 0.0;  // straight line
-      pt.arc_length = t * dist(waypoints[0].first, waypoints[0].second,
-                                waypoints[1].first, waypoints[1].second);
+      pt.x = lerp(waypoints[0].first,  waypoints[1].first,  t);
+      pt.y = lerp(waypoints[0].second, waypoints[1].second, t);
+      pt.theta      = theta;
+      pt.curvature   = 0.0;
+      pt.arc_length  = t * total_d;
       result.push_back(pt);
     }
     return result;
   }
 
-  // Step 1: Compute cumulative arc lengths as parameter
+  // ────────────────── Step 1: cumulative arc-length parameter ──────────────
   std::vector<double> arc = computeArcLengths(waypoints);
+  double total_length = arc.back();
+  if (total_length < 1e-12) {
+    throw std::invalid_argument("Path has zero length — all waypoints are coincident");
+  }
 
-  // Step 2: Extract x and y coordinate arrays
+  // ────────────────── Step 2: coordinate arrays ──────────────
   std::vector<double> wx(n), wy(n);
   for (size_t i = 0; i < n; ++i) {
     wx[i] = waypoints[i].first;
     wy[i] = waypoints[i].second;
   }
 
-  // Step 3: Solve natural cubic splines for x(s) and y(s)
+  // ────────────────── Step 3: solve natural cubic splines x(s), y(s) ──────
   SplineCoefficients coeff_x = solveNaturalCubicSpline(arc, wx);
   SplineCoefficients coeff_y = solveNaturalCubicSpline(arc, wy);
 
-  // Step 4: Sample the spline at uniform arc-length intervals
-  double total_length = arc.back();
+  // ────────────────── Step 4: uniform arc-length sampling ──────────────────
   std::vector<PathPoint> result;
   result.reserve(num_points);
 
-  double cumulative_arc = 0.0;
-
   for (int i = 0; i < num_points; ++i) {
     double s = total_length * static_cast<double>(i) / (num_points - 1);
-    double x = evaluateSpline(s, arc, coeff_x);
-    double y = evaluateSpline(s, arc, coeff_y);
-
-    // Compute heading from path tangent
-    double theta = 0.0;
-    if (i < num_points - 1) {
-      double s_next = total_length * static_cast<double>(i + 1) / (num_points - 1);
-      double x_next = evaluateSpline(s_next, arc, coeff_x);
-      double y_next = evaluateSpline(s_next, arc, coeff_y);
-      theta = std::atan2(y_next - y, x_next - x);
-    } else if (!result.empty()) {
-      theta = result.back().theta;
-    }
 
     PathPoint pt;
-    pt.x = x;
-    pt.y = y;
-    pt.theta = theta;
+    pt.x = evaluateSpline(s, arc, coeff_x);
+    pt.y = evaluateSpline(s, arc, coeff_y);
+
+    // Exact heading from analytic tangent: θ = atan2(y'(s), x'(s))
+    pt.theta = computeExactHeading(s, arc, coeff_x, coeff_y);
+
+    // Exact curvature: κ = (x'y'' − y'x'') / (x'² + y'²)^(3/2)
+    pt.curvature = computeExactCurvature(s, arc, coeff_x, coeff_y);
+
     pt.arc_length = s;
-    pt.curvature = 0.0;  // will be computed below
     result.push_back(pt);
   }
 
-  // Step 5: Compute curvature at each point via central differences
-  for (size_t i = 1; i + 1 < result.size(); ++i) {
-    double dx = (result[i + 1].x - result[i - 1].x) / 2.0;
-    double dy = (result[i + 1].y - result[i - 1].y) / 2.0;
-    double ddx = result[i + 1].x - 2.0 * result[i].x + result[i - 1].x;
-    double ddy = result[i + 1].y - 2.0 * result[i].y + result[i - 1].y;
-    double denom = std::pow(dx * dx + dy * dy, 1.5);
-    if (denom > 1e-12) {
-      result[i].curvature = (dx * ddy - dy * ddx) / denom;
-    }
-  }
+  // Ensure endpoints match waypoints exactly (eliminate floating-point drift)
+  result.front().x = waypoints.front().first;
+  result.front().y = waypoints.front().second;
+  result.back().x  = waypoints.back().first;
+  result.back().y  = waypoints.back().second;
 
   return result;
 }

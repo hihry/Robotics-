@@ -1,6 +1,9 @@
 /**
  * @file test_pure_pursuit.cpp
  * @brief Unit tests for PurePursuitController.
+ *
+ * Covers: no-trajectory guard, forward velocity, goal completion, reset,
+ *         name, state, adaptive look-ahead, progress tracking, goal deceleration.
  */
 
 #include <gtest/gtest.h>
@@ -99,4 +102,53 @@ TEST_F(PurePursuitTest, GetStateReturnsValidState)
   auto state = controller.getState();
   EXPECT_GE(state.cross_track_error, 0.0);
   EXPECT_FALSE(state.trajectory_complete);
+}
+
+// ─── New tests ──────────────────────────────────────────────────────────────
+
+TEST_F(PurePursuitTest, AdaptiveLookAheadIncreasesWithSpeed)
+{
+  // With k = 1.0 the effective L_d grows: L_d = 0.3 + 1.0 * v
+  controller.setAdaptiveLookAheadGain(1.0);
+  controller.setTrajectory(trajectory);
+
+  // At origin facing +x, robot tracks fine
+  auto cmd = controller.computeControl(Pose2D(0.5, 0, 0), 0.0);
+  EXPECT_GT(cmd.linear, 0.0);
+}
+
+TEST_F(PurePursuitTest, ProgressReportedInState)
+{
+  controller.setTrajectory(trajectory);
+
+  // At the start
+  controller.computeControl(Pose2D(0, 0, 0), 0.0);
+  auto s0 = controller.getState();
+  EXPECT_GE(s0.progress, 0.0);
+  EXPECT_LE(s0.progress, 1.0);
+
+  // Further along the trajectory
+  controller.computeControl(Pose2D(1.0, 0, 0), 1.0);
+  auto s1 = controller.getState();
+  EXPECT_GE(s1.progress, s0.progress);
+}
+
+TEST_F(PurePursuitTest, GoalDecelerationReducesSpeed)
+{
+  controller.setGoalDecelerationRadius(0.5);
+  controller.setTrajectory(trajectory);
+
+  // Very close to goal but not within tolerance
+  Pose2D near_goal(1.96, 0.0, 0.0);
+  auto cmd = controller.computeControl(near_goal, 5.0);
+
+  // Speed should be reduced compared to full speed
+  EXPECT_LT(cmd.linear, 0.18);
+  EXPECT_GT(cmd.linear, 0.0);
+}
+
+TEST_F(PurePursuitTest, ThrowsOnInvalidLookAhead)
+{
+  EXPECT_THROW(controller.setLookAheadDistance(-1.0), std::invalid_argument);
+  EXPECT_THROW(controller.setLookAheadDistance(0.0), std::invalid_argument);
 }

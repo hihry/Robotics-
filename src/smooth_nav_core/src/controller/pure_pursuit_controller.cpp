@@ -3,12 +3,14 @@
  * @brief Pure Pursuit + PID trajectory tracking controller.
  *
  * Algorithm:
- *   1. Find nearest trajectory point to robot (cross-track reference)
- *   2. Find look-ahead point at distance L_d ahead
- *   3. Compute steering curvature: κ = 2*sin(α)/L_d
- *   4. Compute angular velocity: ω = v * κ
- *   5. Apply PID correction on cross-track error
- *   6. Clamp outputs to robot limits
+ *   1. Find nearest trajectory point (windowed search for O(1) amortised).
+ *   2. Compute *signed* cross-track error (cross-product gives sign).
+ *   3. Compute adaptive look-ahead distance: L_d = L_d_base + k · |v|.
+ *   4. Find look-ahead point at distance L_d ahead on the trajectory.
+ *   5. Pure Pursuit curvature: κ = 2 · y_local / L_d².
+ *   6. Angular velocity: ω = v · κ   (+ PID correction on cross-track err).
+ *   7. Goal-zone deceleration: linearly reduce speed inside decel_radius.
+ *   8. Clamp to robot limits.
  *
  * Reference:
  *   R. Craig Coulter, "Implementation of the Pure Pursuit Path Tracking Algorithm"
@@ -55,6 +57,16 @@ void PurePursuitController::setPIDGains(double kp, double ki, double kd)
   pid_.setGains(kp, ki, kd);
 }
 
+void PurePursuitController::setAdaptiveLookAheadGain(double k)
+{
+  adaptive_k_ = k;
+}
+
+void PurePursuitController::setGoalDecelerationRadius(double radius)
+{
+  goal_decel_radius_ = std::max(0.01, radius);
+}
+
 // ============ IController Interface ============
 
 void PurePursuitController::setTrajectory(
@@ -66,12 +78,13 @@ void PurePursuitController::setTrajectory(
   nearest_index_ = 0;
   cross_track_error_ = 0.0;
   heading_error_ = 0.0;
+  prev_time_ = -1.0;
   pid_.reset();
 }
 
 Velocity2D PurePursuitController::computeControl(
   const Pose2D & current_pose,
-  double /*time*/)
+  double time)
 {
   // Guard clauses
   if (!trajectory_set_ || trajectory_.empty()) {
@@ -81,14 +94,20 @@ Velocity2D PurePursuitController::computeControl(
     return {0.0, 0.0};
   }
 
+  // dt for PID
+  double dt = 1.0;
+  if (prev_time_ >= 0.0 && time > prev_time_) {
+    dt = time - prev_time_;
+  }
+  prev_time_ = time;
+
   // === Step 1: Find nearest trajectory point ===
   nearest_index_ = findNearestPoint(current_pose);
 
-  const auto & nearest = trajectory_[nearest_index_];
-  cross_track_error_ = std::hypot(current_pose.x - nearest.x,
-                                   current_pose.y - nearest.y);
+  // === Step 2: Signed cross-track error ===
+  cross_track_error_ = computeSignedCrossTrackError(current_pose, nearest_index_);
 
-  // === Step 2: Check goal reached ===
+  // === Step 3: Check goal reached ===
   const auto & goal = trajectory_.back();
   double dist_to_goal = std::hypot(current_pose.x - goal.x,
                                     current_pose.y - goal.y);
@@ -97,41 +116,58 @@ Velocity2D PurePursuitController::computeControl(
     return {0.0, 0.0};
   }
 
-  // === Step 3: Find look-ahead point ===
-  size_t look_ahead_idx = findLookAheadPoint(current_pose, nearest_index_);
+  // === Step 4: Adaptive look-ahead distance ===
+  double ref_v = std::abs(trajectory_[nearest_index_].v);
+  double Ld = look_ahead_distance_ + adaptive_k_ * ref_v;
+  Ld = std::max(Ld, 0.05);  // safety floor
+
+  // === Step 5: Find look-ahead point ===
+  size_t look_ahead_idx = findLookAheadPoint(current_pose, nearest_index_, Ld);
   const auto & look_ahead = trajectory_[look_ahead_idx];
 
-  // === Step 4: Pure Pursuit steering ===
+  // === Step 6: Pure Pursuit steering ===
   double dx = look_ahead.x - current_pose.x;
   double dy = look_ahead.y - current_pose.y;
 
   // Transform to robot-local frame
-  double local_x =  dx * std::cos(current_pose.theta) + dy * std::sin(current_pose.theta);
-  double local_y = -dx * std::sin(current_pose.theta) + dy * std::cos(current_pose.theta);
+  double cos_th = std::cos(current_pose.theta);
+  double sin_th = std::sin(current_pose.theta);
+  double local_x =  dx * cos_th + dy * sin_th;
+  double local_y = -dx * sin_th + dy * cos_th;
 
   double actual_Ld = std::hypot(local_x, local_y);
   if (actual_Ld < 1e-6) {
-    actual_Ld = look_ahead_distance_;
+    actual_Ld = Ld;
   }
 
-  // Pure Pursuit curvature: κ = 2 * y_local / L_d²
+  // Pure Pursuit curvature: κ = 2 · y_local / L_d²
   double curvature = 2.0 * local_y / (actual_Ld * actual_Ld);
 
-  // === Step 5: Compute velocity commands ===
+  // === Step 7: Compute velocity commands ===
+  // Feedforward: use trajectory reference velocity
   double desired_v = trajectory_[nearest_index_].v;
   if (desired_v < 0.01) desired_v = 0.05;
 
-  // PID on cross-track error → reduce speed when error is large
-  double pid_output = pid_.compute(cross_track_error_);
-  double v_cmd = desired_v - std::abs(pid_output) * 0.5;
-  v_cmd = std::max(0.02, std::min(v_cmd, max_linear_vel_));
+  // Goal deceleration
+  if (dist_to_goal < goal_decel_radius_) {
+    double scale = dist_to_goal / goal_decel_radius_;
+    double min_approach_speed = 0.02;
+    desired_v = min_approach_speed + scale * (desired_v - min_approach_speed);
+  }
 
-  // Angular velocity: ω = v * κ
-  double omega_cmd = v_cmd * curvature;
+  // PID on signed cross-track error → angular correction
+  double pid_correction = pid_.compute(cross_track_error_, dt);
 
-  // === Step 6: Clamp to robot limits ===
-  v_cmd = std::max(-max_linear_vel_, std::min(v_cmd, max_linear_vel_));
-  omega_cmd = std::max(-max_angular_vel_, std::min(omega_cmd, max_angular_vel_));
+  // Linear velocity: reduce when cross-track error is large
+  double v_cmd = desired_v * (1.0 - std::min(0.8, std::abs(cross_track_error_) * 2.0));
+  v_cmd = std::clamp(v_cmd, 0.02, max_linear_vel_);
+
+  // Angular velocity: ω = v · κ  +  PID cross-track correction
+  double omega_cmd = v_cmd * curvature + pid_correction;
+
+  // === Step 8: Clamp to robot limits ===
+  v_cmd = std::clamp(v_cmd, -max_linear_vel_, max_linear_vel_);
+  omega_cmd = std::clamp(omega_cmd, -max_angular_vel_, max_angular_vel_);
 
   // Heading error for diagnostics
   double desired_theta = std::atan2(dy, dx);
@@ -157,6 +193,13 @@ ControllerState PurePursuitController::getState() const
   state.heading_error = heading_error_;
   state.nearest_index = nearest_index_;
   state.trajectory_complete = trajectory_complete_;
+
+  // Progress ∈ [0, 1]
+  if (!trajectory_.empty()) {
+    state.progress = static_cast<double>(nearest_index_) /
+                     static_cast<double>(trajectory_.size() - 1);
+  }
+
   return state;
 }
 
@@ -168,6 +211,7 @@ void PurePursuitController::reset()
   nearest_index_ = 0;
   cross_track_error_ = 0.0;
   heading_error_ = 0.0;
+  prev_time_ = -1.0;
   pid_.reset();
 }
 
@@ -195,7 +239,7 @@ size_t PurePursuitController::findNearestPoint(const Pose2D & pose) const
   double min_dist = std::numeric_limits<double>::max();
   size_t nearest = nearest_index_;
 
-  // Windowed search around last known index for efficiency
+  // Windowed search around last known index for O(1) amortised
   size_t search_start = (nearest_index_ > 10) ? nearest_index_ - 10 : 0;
   size_t search_end = std::min(nearest_index_ + 50, trajectory_.size());
 
@@ -212,16 +256,37 @@ size_t PurePursuitController::findNearestPoint(const Pose2D & pose) const
 }
 
 size_t PurePursuitController::findLookAheadPoint(
-  const Pose2D & pose, size_t nearest_idx) const
+  const Pose2D & pose, size_t nearest_idx, double Ld) const
 {
   for (size_t i = nearest_idx; i < trajectory_.size(); ++i) {
     double d = std::hypot(pose.x - trajectory_[i].x,
                            pose.y - trajectory_[i].y);
-    if (d >= look_ahead_distance_) {
+    if (d >= Ld) {
       return i;
     }
   }
   return trajectory_.size() - 1;
+}
+
+double PurePursuitController::computeSignedCrossTrackError(
+  const Pose2D & pose, size_t idx) const
+{
+  // Signed error using cross product between trajectory tangent and
+  // vector from trajectory point to robot.
+  // sign > 0 → robot is to the left of the path.
+  if (idx + 1 < trajectory_.size()) {
+    double tx = trajectory_[idx + 1].x - trajectory_[idx].x;
+    double ty = trajectory_[idx + 1].y - trajectory_[idx].y;
+    double ex = pose.x - trajectory_[idx].x;
+    double ey = pose.y - trajectory_[idx].y;
+    double len = std::hypot(tx, ty);
+    if (len > 1e-9) {
+      return (tx * ey - ty * ex) / len;   // signed perpendicular distance
+    }
+  }
+  // Fallback: unsigned distance
+  return std::hypot(pose.x - trajectory_[idx].x,
+                     pose.y - trajectory_[idx].y);
 }
 
 }  // namespace smooth_nav_core
