@@ -1,16 +1,21 @@
+// Copyright 2026 smooth_nav Authors
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @file test_generator_service.cpp
  * @brief Integration test — verifies the /trajectory_generator/generate_trajectory
  *        service responds correctly given a smoothed path.
  */
 
+#include <chrono>
+#include <cmath>
+
 #include <gtest/gtest.h>
 #include <rclcpp/rclcpp.hpp>
+
 #include <smooth_nav_msgs/srv/generate_trajectory.hpp>
 #include <smooth_nav_msgs/msg/smoothed_path.hpp>
 #include <geometry_msgs/msg/point.hpp>
-#include <chrono>
-#include <cmath>
 
 using namespace std::chrono_literals;
 

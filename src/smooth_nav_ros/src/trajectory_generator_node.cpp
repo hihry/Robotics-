@@ -1,3 +1,6 @@
+// Copyright 2026 smooth_nav Authors
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @file trajectory_generator_node.cpp
  * @brief ROS 2 service node — converts smoothed paths into time-parameterised trajectories.
@@ -21,6 +24,12 @@
  *   - Trajectory visualisation for debugging velocity profiles
  */
 
+#include <cmath>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
+
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -34,12 +43,6 @@
 #include "smooth_nav_core/trajectory_generator/constant_velocity_generator.hpp"
 #include "smooth_nav_core/trajectory_generator/i_trajectory_generator.hpp"
 #include "smooth_nav_core/math/types.hpp"
-
-#include <memory>
-#include <string>
-#include <vector>
-#include <cmath>
-#include <mutex>
 
 namespace smooth_nav_ros
 {

@@ -1,3 +1,6 @@
+# Copyright 2026 smooth_nav Authors
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Launch Gazebo with TurtleBot3 for smooth_nav simulation.
 

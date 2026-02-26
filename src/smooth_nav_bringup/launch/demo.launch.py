@@ -1,3 +1,6 @@
+# Copyright 2026 smooth_nav Authors
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Demo launch — runs the full pipeline with a waypoint client that automatically
 calls smooth → generate → execute services/actions.

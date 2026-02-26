@@ -1,3 +1,6 @@
+// Copyright 2026 smooth_nav Authors
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @file test_tracker_action.cpp
  * @brief Integration test — verifies the ExecuteTrajectory action server.
@@ -6,15 +9,17 @@
  * that feedback is received and the action completes.
  */
 
+#include <chrono>
+#include <cmath>
+
 #include <gtest/gtest.h>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+
 #include <smooth_nav_msgs/action/execute_trajectory.hpp>
 #include <smooth_nav_msgs/msg/trajectory.hpp>
 #include <smooth_nav_msgs/msg/trajectory_point.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <chrono>
-#include <cmath>
 
 using namespace std::chrono_literals;
 using ExecuteTrajectory = smooth_nav_msgs::action::ExecuteTrajectory;

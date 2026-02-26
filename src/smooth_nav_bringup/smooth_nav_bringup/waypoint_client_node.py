@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 smooth_nav Authors
+# SPDX-License-Identifier: Apache-2.0
+
 """
 waypoint_client_node.py — End-to-end pipeline orchestrator for smooth_nav.
 

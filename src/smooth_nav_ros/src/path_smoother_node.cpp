@@ -1,3 +1,6 @@
+// Copyright 2026 smooth_nav Authors
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * @file path_smoother_node.cpp
  * @brief ROS 2 service node wrapping smooth_nav_core path smoothers.
@@ -33,6 +36,12 @@
  *   - Thread-safe service callback (mutex around smoother)
  */
 
+#include <cmath>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
+
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -44,12 +53,6 @@
 
 #include "smooth_nav_core/path_smoother/smoother_factory.hpp"
 #include "smooth_nav_core/path_smoother/bspline_smoother.hpp"
-
-#include <memory>
-#include <vector>
-#include <string>
-#include <cmath>
-#include <mutex>
 
 namespace smooth_nav_ros
 {

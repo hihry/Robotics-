@@ -1,3 +1,6 @@
+# Copyright 2026 smooth_nav Authors
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Master bringup launch — starts everything needed for the smooth_nav demo.
 

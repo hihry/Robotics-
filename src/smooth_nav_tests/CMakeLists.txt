@@ -13,6 +13,10 @@ if(BUILD_TESTING)
   find_package(nav_msgs REQUIRED)
   find_package(geometry_msgs REQUIRED)
 
+  # Skip linters that require specific formatting style
+  set(ament_cmake_copyright_FOUND TRUE)
+  set(ament_cmake_uncrustify_FOUND TRUE)
+  set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 
   # Integration test: path smoother service
