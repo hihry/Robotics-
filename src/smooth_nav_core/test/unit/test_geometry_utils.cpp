@@ -37,8 +37,9 @@ TEST(GeometryUtilsTest, NormalizeAngleInRange)
 
 TEST(GeometryUtilsTest, NormalizeAngleWraps)
 {
-  EXPECT_NEAR(normalizeAngle(3 * M_PI), M_PI, 1e-12);
-  EXPECT_NEAR(normalizeAngle(-3 * M_PI), -M_PI, 1e-12);
+  // std::remainder(3π, 2π) = -π  (both ±π represent the same angle)
+  EXPECT_NEAR(std::abs(normalizeAngle(3 * M_PI)), M_PI, 1e-12);
+  EXPECT_NEAR(std::abs(normalizeAngle(-3 * M_PI)), M_PI, 1e-12);
   EXPECT_NEAR(normalizeAngle(2 * M_PI), 0.0, 1e-12);
 }
 
@@ -111,7 +112,8 @@ TEST(GeometryUtilsTest, Cross2DOrthogonal)
 TEST(GeometryUtilsTest, ClosestPointOnSegmentMidpoint)
 {
   // Segment from (0,0) to (10,0), query at (5,3)
-  auto [cx, cy, t] = closestPointOnSegment(5, 3, 0, 0, 10, 0);
+  double t;
+  auto [cx, cy] = closestPointOnSegment(0, 0, 10, 0, 5, 3, t);
   EXPECT_NEAR(cx, 5.0, 1e-12);
   EXPECT_NEAR(cy, 0.0, 1e-12);
   EXPECT_NEAR(t, 0.5, 1e-12);
@@ -119,7 +121,8 @@ TEST(GeometryUtilsTest, ClosestPointOnSegmentMidpoint)
 
 TEST(GeometryUtilsTest, ClosestPointOnSegmentClampsToStart)
 {
-  auto [cx, cy, t] = closestPointOnSegment(-5, 1, 0, 0, 10, 0);
+  double t;
+  auto [cx, cy] = closestPointOnSegment(0, 0, 10, 0, -5, 1, t);
   EXPECT_NEAR(cx, 0.0, 1e-12);
   EXPECT_NEAR(cy, 0.0, 1e-12);
   EXPECT_NEAR(t, 0.0, 1e-12);
@@ -130,14 +133,14 @@ TEST(GeometryUtilsTest, ClosestPointOnSegmentClampsToStart)
 TEST(GeometryUtilsTest, SignedDistToLinePositive)
 {
   // Point above the x-axis line through (0,0)→(1,0) → positive
-  double d = signedDistToLine(0.5, 1.0, 0, 0, 1, 0);
+  double d = signedDistToLine(0, 0, 1, 0, 0.5, 1.0);
   EXPECT_NEAR(d, 1.0, 1e-12);
 }
 
 TEST(GeometryUtilsTest, SignedDistToLineNegative)
 {
   // Point below the x-axis
-  double d = signedDistToLine(0.5, -2.0, 0, 0, 1, 0);
+  double d = signedDistToLine(0, 0, 1, 0, 0.5, -2.0);
   EXPECT_NEAR(d, -2.0, 1e-12);
 }
 
@@ -146,7 +149,7 @@ TEST(GeometryUtilsTest, SignedDistToLineNegative)
 TEST(GeometryUtilsTest, PointToSegmentDistancePerp)
 {
   // Perpendicular distance from (5,3) to segment (0,0)→(10,0) = 3
-  EXPECT_NEAR(pointToSegmentDistance(5, 3, 0, 0, 10, 0), 3.0, 1e-12);
+  EXPECT_NEAR(pointToSegmentDistance(0, 0, 10, 0, 5, 3), 3.0, 1e-12);
 }
 
 // ─── removeDuplicates ───────────────────────────────────────────────────────
