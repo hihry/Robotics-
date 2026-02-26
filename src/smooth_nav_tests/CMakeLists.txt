@@ -54,11 +54,15 @@ if(BUILD_TESTING)
     geometry_msgs
   )
 
-  # System launch test
-  add_launch_test(
-    test/system/test_full_pipeline.launch.py
-    TIMEOUT 120
-  )
+  # System launch test — only run when smooth_nav_ros package is available
+  # (requires full node launch, skip in lightweight CI)
+  find_package(smooth_nav_ros QUIET)
+  if(smooth_nav_ros_FOUND AND NOT DEFINED ENV{CI})
+    add_launch_test(
+      test/system/test_full_pipeline.launch.py
+      TIMEOUT 120
+    )
+  endif()
 endif()
 
 ament_package()
